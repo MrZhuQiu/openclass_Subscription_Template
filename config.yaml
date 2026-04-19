@@ -1,0 +1,41 @@
+"routing": {
+  "domainStrategy": "AsIs",       // 1. 按域名原样分流，不篡改
+  "rules": [
+    // --------------------- 系统规则 ---------------------
+    { "type": "field", "inboundTag": ["api"], "outboundTag": "api" },
+    { "type": "field", "port": 443, "network": "udp", "outboundTag": "block" },
+
+    // --------------------- 第一步：内网直连 ---------------------
+    { "type": "field", "ip": ["geoip:private"], "outboundTag": "direct" },
+
+    // --------------------- 第二步：国内IP 全部直连 ---------------------
+    // 苹果/微软/百度/阿里 国内IP 全部直连，不走代理
+    { "type": "field", "ip": ["geoip:cn"], "outboundTag": "direct" },
+
+    // --------------------- 第三步：国内域名 全部直连 ---------------------
+    { "type": "field", "domain": ["geosite:cn"], "outboundTag": "direct" },
+
+    // --------------------- 第四步：必须走代理的域名 ---------------------
+    {
+      "type": "field",
+      "domain": [
+        "geosite:onedrive",      // 国际版OneDrive
+        "geosite:google-play",   // Google商店
+        "geosite:youtube",        // 油管
+        "geosite:netflix",       // 奈飞
+        "geosite:disney",        // 迪士尼
+        "geosite:openai",        // GPT
+        "geosite:anthropic",     // Claude
+        "geosite:google-ai",     // Gemini
+        "geosite:google"         // 谷歌全家桶
+      ],
+      "outboundTag": "proxy"
+    },
+
+    // --------------------- 第五步：国外IP 全部走代理 ---------------------
+    { "type": "field", "ip": ["geoip:!cn"], "outboundTag": "proxy" },
+
+    // --------------------- 第六步：漏网之鱼 走代理 ---------------------
+    { "type": "field", "outboundTag": "proxy" }
+  ]
+}
